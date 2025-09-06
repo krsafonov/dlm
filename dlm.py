@@ -17,6 +17,8 @@ from typing import List, Dict
 
 from src.initial_sort import initial_analysis
 from src.file_organizer import create_folders, move_files_to_dir, revert_moves
+from src.group_sort import group_analysis
+from src.group_organizer import organize_by_groups, revert_group_organization
 
 
 def ensure_dlm_dir(directory: str) -> Path:
@@ -188,9 +190,14 @@ def revert_organization(directory: str) -> None:
     
     dlm_path = ensure_dlm_dir(directory)
     log_file = dlm_path / "move_log.json"
+    group_log_file = dlm_path / "group_move_log.json"
     
     if not log_file.exists():
-        print("❌ No move log found. Nothing to revert.")
+        if group_log_file.exists():
+            print("❌ No initial organization move log found.")
+            print("💡 Found group organization log. Use 'revert-groups' command instead.")
+        else:
+            print("❌ No move log found. Nothing to revert.")
         return
     
     result = revert_moves(str(log_file))
@@ -209,6 +216,110 @@ def revert_organization(directory: str) -> None:
             print(f"  - {not_found}")
 
 
+def find_groups(directory: str, batch_size: int = 100) -> None:
+    """Find file groups for organization"""
+    print(f"🔍 Finding file groups in {directory}...")
+    
+    results = group_analysis(directory, batch_size)
+    
+    if results.get("error"):
+        print(f"❌ Error: {results['error']}")
+        return
+    
+    groups = results.get("groups", [])
+    print(f"✅ Found {len(groups)} groups")
+    
+    # Show summary
+    for group in groups:
+        suggested_folder = group.get('suggested_folder', 'keep in place')
+        print(f"  📦 {group['group_name']}: {len(group['files'])} files → {suggested_folder}")
+
+
+def organize_groups(directory: str) -> None:
+    """Organize files according to group analysis"""
+    print(f"📁 Organizing files by groups in {directory}...")
+    
+    results = organize_by_groups(directory)
+    
+    if results.get("error"):
+        print(f"❌ Error: {results['error']}")
+        return
+    
+    print(f"✅ Processed {results['groups_processed']} groups")
+    print(f"✅ Moved {results['files_moved']} files")
+    
+    if results.get("errors"):
+        print(f"⚠️ Errors: {len(results['errors'])}")
+        for error in results["errors"]:
+            print(f"  - {error}")
+
+
+def revert_groups(directory: str) -> None:
+    """Revert group organization"""
+    print(f"↩️ Reverting group organization in {directory}...")
+    
+    # Check for helpful error messages
+    dlm_path = ensure_dlm_dir(directory)
+    log_file = dlm_path / "move_log.json"
+    group_log_file = dlm_path / "group_move_log.json"
+    
+    if not group_log_file.exists():
+        if log_file.exists():
+            print("❌ No group organization move log found.")
+            print("💡 Found initial organization log. Use 'revert' command instead.")
+        else:
+            print("❌ No group organization move log found. Nothing to revert.")
+        return
+    
+    results = revert_group_organization(directory)
+    
+    if results.get("error"):
+        print(f"❌ Error: {results['error']}")
+        return
+    
+    print(f"✅ Reverted {len(results['reverted'])} files")
+    print(f"✅ Removed {len(results['folders_removed'])} folders")
+    
+    if results["errors"]:
+        print(f"⚠️ Errors: {len(results['errors'])}")
+        for error in results["errors"]:
+            print(f"  - {error}")
+    
+    if results["not_found"]:
+        print(f"⚠️ Items not found: {len(results['not_found'])}")
+        for not_found in results["not_found"]:
+            print(f"  - {not_found}")
+
+
+def revert_all(directory: str) -> None:
+    """Revert any organization (initial or groups)"""
+    print(f"↩️ Reverting any organization in {directory}...")
+    
+    dlm_path = ensure_dlm_dir(directory)
+    log_file = dlm_path / "move_log.json"
+    group_log_file = dlm_path / "group_move_log.json"
+    
+    reverted_initial = False
+    reverted_groups = False
+    
+    # Try to revert initial organization
+    if log_file.exists():
+        print("🔄 Reverting initial organization...")
+        revert_organization(directory)
+        reverted_initial = True
+    
+    # Try to revert group organization
+    if group_log_file.exists():
+        print("🔄 Reverting group organization...")
+        revert_groups(directory)
+        reverted_groups = True
+    
+    if not reverted_initial and not reverted_groups:
+        print("❌ No organization logs found. Nothing to revert.")
+    else:
+        print("✅ Revert complete!")
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -221,6 +332,10 @@ Commands:
   find-all          Run both find-important and find-trash
   initial-organize  Move files according to lists created by find commands (initial organization)
   revert            Revert initial organization using move log
+  find-groups       Analyze files and identify groups for organization
+  organize-groups   Organize files according to group analysis results
+  revert-groups     Revert group organization using move log
+  revert-all        Revert any organization (initial or groups)
 
 Examples:
   dlm.py find-important ~/Downloads
@@ -228,11 +343,16 @@ Examples:
   dlm.py find-all ~/Downloads
   dlm.py initial-organize ~/Downloads
   dlm.py revert ~/Downloads
+  dlm.py find-groups ~/Downloads
+  dlm.py organize-groups ~/Downloads
+  dlm.py revert-groups ~/Downloads
+  dlm.py revert-all ~/Downloads
         """
     )
     
     parser.add_argument("command", 
-                       choices=["find-important", "find-trash", "find-all", "initial-organize", "revert"],
+                       choices=["find-important", "find-trash", "find-all", "initial-organize", "revert", 
+                               "find-groups", "organize-groups", "revert-groups", "revert-all"],
                        help="Command to execute")
     parser.add_argument("directory", help="Directory to process")
     parser.add_argument("--batch-size", "-b", type=int, default=100,
@@ -260,6 +380,14 @@ Examples:
             initial_organize_files(args.directory)
         elif args.command == "revert":
             revert_organization(args.directory)
+        elif args.command == "find-groups":
+            find_groups(args.directory, args.batch_size)
+        elif args.command == "organize-groups":
+            organize_groups(args.directory)
+        elif args.command == "revert-groups":
+            revert_groups(args.directory)
+        elif args.command == "revert-all":
+            revert_all(args.directory)
         
         return 0
         

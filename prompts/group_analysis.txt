@@ -1,0 +1,34 @@
+Scan the {directory} folder and identify files that can be grouped together.
+Use file metadata (names, extensions, sizes, and timestamps) to infer groups
+(e.g. duplicates, installers, old archives, media, temporary files).
+
+Return the results as a JSON array of objects, where each object contains:
+- "group_name": short label for the group (string)
+- "description": explanation of why these files belong together (string)
+- "files": list of filenames (array of strings)
+- "size_mb": total size of the group (number)
+- "last_modified": timestamp of the most recent file (string, ISO 8601)
+- "confidence": likelihood that grouping is correct (string: "low" | "medium" | "high")
+- "suggested_folder": target folder name where files should be moved (string)
+  - Use "trash" for files that should be deleted
+  - Use descriptive folder names for organization (e.g., "archives", "installers", "media", "documents")
+
+Do not delete anything—just return the suggested groups and target folders.
+
+Files to analyze:
+{files_list}
+
+Please provide your analysis in JSON format:
+{{
+    "groups": [
+        {{
+            "group_name": "example_group",
+            "description": "Files that belong together because...",
+            "files": ["file1.txt", "file2.pdf"],
+            "size_mb": 15.5,
+            "last_modified": "2024-01-01T12:00:00",
+            "confidence": "high",
+            "suggested_folder": "documents"
+        }}
+    ]
+}}
