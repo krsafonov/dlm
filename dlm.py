@@ -129,9 +129,9 @@ def find_all_files(directory: str, batch_size: int = 100) -> None:
     find_trash_files(directory, batch_size)
 
 
-def organize_files(directory: str) -> None:
-    """Move files according to lists created by find commands"""
-    print(f"📁 Organizing files in {directory}...")
+def initial_organize_files(directory: str) -> None:
+    """Move files according to lists created by find commands (initial organization)"""
+    print(f"📁 Initial organization of files in {directory}...")
     
     dlm_path = ensure_dlm_dir(directory)
     
@@ -143,6 +143,9 @@ def organize_files(directory: str) -> None:
         print("❌ No file lists found. Run 'find-important' or 'find-trash' first.")
         return
     
+    # Set up log file
+    log_file = str(dlm_path / "move_log.json")
+    
     # Create folders
     folders_to_create = []
     if important_files:
@@ -151,11 +154,10 @@ def organize_files(directory: str) -> None:
         folders_to_create.append("trash")
     
     if folders_to_create:
-        create_folders(directory, folders_to_create)
+        create_folders(directory, folders_to_create, log_file)
         print(f"📂 Created folders: {', '.join(folders_to_create)}")
     
     # Move files
-    log_file = str(dlm_path / "move_log.json")
     total_moved = 0
     
     if important_files:
@@ -181,8 +183,8 @@ def organize_files(directory: str) -> None:
 
 
 def revert_organization(directory: str) -> None:
-    """Revert file organization using move log"""
-    print(f"↩️ Reverting file organization in {directory}...")
+    """Revert initial organization using move log"""
+    print(f"↩️ Reverting initial organization in {directory}...")
     
     dlm_path = ensure_dlm_dir(directory)
     log_file = dlm_path / "move_log.json"
@@ -194,6 +196,7 @@ def revert_organization(directory: str) -> None:
     result = revert_moves(str(log_file))
     
     print(f"✅ Reverted {len(result['reverted'])} files")
+    print(f"✅ Removed {len(result['folders_removed'])} folders")
     
     if result["errors"]:
         print(f"⚠️ Errors: {len(result['errors'])}")
@@ -201,7 +204,7 @@ def revert_organization(directory: str) -> None:
             print(f"  - {error}")
     
     if result["not_found"]:
-        print(f"⚠️ Files not found: {len(result['not_found'])}")
+        print(f"⚠️ Items not found: {len(result['not_found'])}")
         for not_found in result["not_found"]:
             print(f"  - {not_found}")
 
@@ -216,20 +219,20 @@ Commands:
   find-important    Find important files and save list to .dlm/important_files.txt
   find-trash        Find trash files and save list to .dlm/trash_files.txt
   find-all          Run both find-important and find-trash
-  organize          Move files according to lists created by find commands
-  revert            Revert file organization using move log
+  initial-organize  Move files according to lists created by find commands (initial organization)
+  revert            Revert initial organization using move log
 
 Examples:
   dlm.py find-important ~/Downloads
   dlm.py find-trash ~/Downloads --batch-size 50
   dlm.py find-all ~/Downloads
-  dlm.py organize ~/Downloads
+  dlm.py initial-organize ~/Downloads
   dlm.py revert ~/Downloads
         """
     )
     
     parser.add_argument("command", 
-                       choices=["find-important", "find-trash", "find-all", "organize", "revert"],
+                       choices=["find-important", "find-trash", "find-all", "initial-organize", "revert"],
                        help="Command to execute")
     parser.add_argument("directory", help="Directory to process")
     parser.add_argument("--batch-size", "-b", type=int, default=100,
@@ -253,8 +256,8 @@ Examples:
             find_trash_files(args.directory, args.batch_size)
         elif args.command == "find-all":
             find_all_files(args.directory, args.batch_size)
-        elif args.command == "organize":
-            organize_files(args.directory)
+        elif args.command == "initial-organize":
+            initial_organize_files(args.directory)
         elif args.command == "revert":
             revert_organization(args.directory)
         
