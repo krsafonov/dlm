@@ -87,6 +87,12 @@ python dlm.py revert-all ~/Downloads
 ```
 Reverts any organization (initial or groups) - automatically detects which logs exist
 
+#### 10. Organize All
+```bash
+python dlm.py organize-all ~/Downloads
+```
+Runs complete organization in one command: find-all → initial-organize → find-groups → organize-groups
+
 ### Programmatic Usage
 
 You can also use the library functions directly in Python:
@@ -108,7 +114,7 @@ revert_moves("moves.json")
 ## API Reference
 
 ### dlm.py (CLI)
-- `command` - One of: find-important, find-trash, find-all, initial-organize, revert, find-groups, organize-groups, revert-groups, revert-all
+- `command` - One of: find-important, find-trash, find-all, initial-organize, revert, find-groups, organize-groups, revert-groups, revert-all, organize-all
 - `directory` - Directory to process
 - `--batch-size, -b` - Files per batch (default: 100)
 
@@ -133,6 +139,16 @@ revert_moves("moves.json")
 
 ## Example Workflow
 
+**Quick Start (All-in-One):**
+```bash
+# Run complete organization in one command
+python dlm.py organize-all ~/Downloads
+
+# If needed, revert all changes
+python dlm.py revert-all ~/Downloads
+```
+
+**Step-by-Step Workflow:**
 ```bash
 # 1. Find important files
 python dlm.py find-important ~/Downloads
@@ -143,11 +159,17 @@ python dlm.py find-trash ~/Downloads
 # 3. Initial organization of files into folders
 python dlm.py initial-organize ~/Downloads
 
-# 4. If you want to revert everything back
-python dlm.py revert ~/Downloads
+# 4. Find groups for further organization
+python dlm.py find-groups ~/Downloads
+
+# 5. Organize files by groups
+python dlm.py organize-groups ~/Downloads
+
+# 6. If you want to revert everything back
+python dlm.py revert-all ~/Downloads
 ```
 
-Or run everything at once:
+**Alternative Quick Commands:**
 ```bash
 # Find all files and do initial organization in one go
 python dlm.py find-all ~/Downloads

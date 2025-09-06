@@ -291,6 +291,42 @@ def revert_groups(directory: str) -> None:
             print(f"  - {not_found}")
 
 
+def organize_all(directory: str, batch_size: int = 100) -> None:
+    """Run complete organization: find-all, initial-organize, find-groups, organize-groups"""
+    print(f"🚀 Running complete organization in {directory}...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: Find important and trash files
+        print("📋 Step 1/4: Finding important and trash files...")
+        find_all_files(directory, batch_size)
+        print("✅ Step 1 complete!\n")
+        
+        # Step 2: Initial organization
+        print("📁 Step 2/4: Initial organization...")
+        initial_organize_files(directory)
+        print("✅ Step 2 complete!\n")
+        
+        # Step 3: Find groups
+        print("🔍 Step 3/4: Finding file groups...")
+        find_groups(directory, batch_size)
+        print("✅ Step 3 complete!\n")
+        
+        # Step 4: Organize groups
+        print("📦 Step 4/4: Organizing groups...")
+        organize_groups(directory)
+        print("✅ Step 4 complete!\n")
+        
+        print("=" * 60)
+        print("🎉 Complete organization finished successfully!")
+        print("💡 Use 'revert-all' to undo all changes if needed.")
+        
+    except Exception as e:
+        print(f"❌ Error during organization: {e}")
+        print("💡 You can use 'revert-all' to undo any partial changes.")
+        raise
+
+
 def revert_all(directory: str) -> None:
     """Revert any organization (initial or groups)"""
     print(f"↩️ Reverting any organization in {directory}...")
@@ -336,6 +372,7 @@ Commands:
   organize-groups   Organize files according to group analysis results
   revert-groups     Revert group organization using move log
   revert-all        Revert any organization (initial or groups)
+  organize-all      Run complete organization (find-all + initial-organize + find-groups + organize-groups)
 
 Examples:
   dlm.py find-important ~/Downloads
@@ -347,12 +384,13 @@ Examples:
   dlm.py organize-groups ~/Downloads
   dlm.py revert-groups ~/Downloads
   dlm.py revert-all ~/Downloads
+  dlm.py organize-all ~/Downloads
         """
     )
     
     parser.add_argument("command", 
                        choices=["find-important", "find-trash", "find-all", "initial-organize", "revert", 
-                               "find-groups", "organize-groups", "revert-groups", "revert-all"],
+                               "find-groups", "organize-groups", "revert-groups", "revert-all", "organize-all"],
                        help="Command to execute")
     parser.add_argument("directory", help="Directory to process")
     parser.add_argument("--batch-size", "-b", type=int, default=100,
@@ -388,6 +426,8 @@ Examples:
             revert_groups(args.directory)
         elif args.command == "revert-all":
             revert_all(args.directory)
+        elif args.command == "organize-all":
+            organize_all(args.directory, args.batch_size)
         
         return 0
         
